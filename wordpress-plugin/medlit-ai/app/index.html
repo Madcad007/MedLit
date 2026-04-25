@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MedLit AI — Medizinische Literatursuche</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #1a4a7a;
+            --primary-light: #2563eb;
+            --primary-dark: #0f2d4d;
+            --secondary: #0891b2;
+            --accent: #059669;
+            --bg: #f0f4f8;
+            --card-bg: #ffffff;
+            --text: #1e293b;
+            --text-light: #64748b;
+            --border: #e2e8f0;
+            --shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+        .header { background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 55%, var(--secondary) 100%); color: white; padding: 1.25rem 2rem; box-shadow: var(--shadow-lg); }
+        .header-inner { max-width: 1260px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; }
+        .logo { display: flex; align-items: center; gap: 0.9rem; }
+        .logo-icon { width: 46px; height: 46px; background: rgba(255,255,255,0.15); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; }
+        .logo-text h1 { font-size: 1.45rem; font-weight: 700; letter-spacing: -0.025em; }
+        .logo-text p { font-size: 0.78rem; opacity: 0.7; }
+        .header-right { display: flex; align-items: center; gap: 0.75rem; }
+        .lang-btn { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3); border-radius: 8px; color: white; padding: 0.35rem 0.75rem; cursor: pointer; font-size: 0.82rem; transition: background 0.2s; }
+        .lang-btn:hover { background: rgba(255,255,255,0.25); }
+
+        .container { max-width: 1260px; margin: 1.75rem auto; padding: 0 1.5rem; }
+        .grid { display: grid; grid-template-columns: 300px 1fr; gap: 1.5rem; }
+        @media (max-width: 880px) { .grid { grid-template-columns: 1fr; } }
+
+        .card { background: var(--card-bg); border-radius: 16px; box-shadow: var(--shadow); border: 1px solid var(--border); overflow: hidden; margin-bottom: 1.5rem; }
+        .card:last-child { margin-bottom: 0; }
+        .card-header { padding: 1.1rem 1.4rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 0.7rem; }
+        .card-header h2 { font-size: 0.95rem; font-weight: 600; }
+        .card-icon { width: 30px; height: 30px; background: #eff6ff; border-radius: 7px; display: flex; align-items: center; justify-content: center; color: var(--primary-light); font-size: 0.85rem; flex-shrink: 0; }
+        .card-body { padding: 1.25rem; }
+
+        .source-item { display: flex; align-items: center; justify-content: space-between; padding: 0.65rem 0.75rem; border-radius: 10px; margin-bottom: 0.4rem; background: #f8fafc; transition: background 0.2s; }
+        .source-item:hover { background: #f1f5f9; }
+        .source-info { display: flex; align-items: center; gap: 0.65rem; }
+        .src-badge { width: 34px; height: 34px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 0.65rem; font-weight: 700; letter-spacing: -0.03em; flex-shrink: 0; }
+        .src-name { font-size: 0.83rem; font-weight: 500; }
+        .src-desc { font-size: 0.72rem; color: var(--text-light); }
+        .src-actions { display: flex; align-items: center; gap: 0.5rem; margin-top: 0.4rem; }
+        .src-action-btn { font-size: 0.72rem; color: var(--primary-light); background: none; border: none; cursor: pointer; padding: 0.2rem 0.4rem; border-radius: 4px; }
+        .src-action-btn:hover { background: #eff6ff; }
+
+        .toggle { position: relative; width: 42px; height: 22px; flex-shrink: 0; }
+        .toggle input { opacity: 0; width: 0; height: 0; }
+        .t-slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background: #cbd5e1; border-radius: 22px; transition: 0.25s; }
+        .t-slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 3px; bottom: 3px; background: white; border-radius: 50%; transition: 0.25s; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+        .toggle input:checked + .t-slider { background: var(--primary-light); }
+        .toggle input:checked + .t-slider:before { transform: translateX(20px); }
+
+        .opt-group { display: flex; flex-direction: column; gap: 0.2rem; margin-bottom: 0.9rem; }
+        .opt-label { font-size: 0.72rem; font-weight: 600; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.05em; }
+        .opt-select { padding: 0.45rem 0.7rem; border: 1px solid var(--border); border-radius: 8px; font-size: 0.84rem; font-family: inherit; outline: none; background: white; cursor: pointer; }
+
+        .search-label { font-size: 0.875rem; font-weight: 600; margin-bottom: 0.6rem; display: flex; align-items: center; gap: 0.4rem; }
+        .search-ta { width: 100%; padding: 0.8rem 0.9rem; border: 2px solid var(--border); border-radius: 12px; font-size: 0.92rem; font-family: inherit; resize: vertical; min-height: 90px; outline: none; transition: border-color 0.2s; line-height: 1.6; }
+        .search-ta:focus { border-color: var(--primary-light); }
+        .ex-label { font-size: 0.78rem; color: var(--text-light); margin: 0.7rem 0 0.4rem; }
+        .ex-wrap { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+        .ex-btn { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 20px; padding: 0.3rem 0.7rem; font-size: 0.775rem; color: var(--primary-light); cursor: pointer; transition: all 0.2s; }
+        .ex-btn:hover { background: #dbeafe; }
+        .search-btn { margin-top: 1rem; width: 100%; padding: 0.82rem; background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%); color: white; border: none; border-radius: 12px; font-size: 0.97rem; font-weight: 600; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 0.5rem; box-shadow: 0 4px 14px rgba(37,99,235,0.35); }
+        .search-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(37,99,235,0.45); }
+        .search-btn:active { transform: none; }
+        .search-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; box-shadow: none; }
+
+        .placeholder { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 4rem 2rem; text-align: center; color: var(--text-light); }
+        .placeholder-icon { font-size: 3rem; margin-bottom: 1rem; opacity: 0.25; }
+
+        .loading { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 3rem; gap: 1.25rem; }
+        .spinner { width: 46px; height: 46px; border: 4px solid #e2e8f0; border-top-color: var(--primary-light); border-radius: 50%; animation: spin 0.75s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .loading-step { font-size: 0.82rem; color: var(--primary-light); font-weight: 500; text-align: center; }
+
+        .tabs { display: flex; gap: 0.25rem; border-bottom: 2px solid var(--border); margin-bottom: 1.5rem; }
+        .tab { padding: 0.55rem 0.95rem; font-size: 0.84rem; font-weight: 500; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s; color: var(--text-light); }
+        .tab.active { color: var(--primary-light); border-bottom-color: var(--primary-light); }
+        .tab:hover { color: var(--primary-light); }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .count-badge { background: var(--primary-light); color: white; border-radius: 20px; padding: 0.1rem 0.45rem; font-size: 0.68rem; font-weight: 700; }
+
+        .result-meta { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1.25rem; }
+        .result-query { font-size: 0.84rem; color: var(--text-light); }
+        .result-query strong { color: var(--text); }
+        .src-chips { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.35rem; }
+        .src-chip { padding: 0.18rem 0.55rem; border-radius: 6px; font-size: 0.72rem; font-weight: 600; }
+        .result-actions { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+        .action-btn { padding: 0.35rem 0.7rem; border: 1px solid var(--border); border-radius: 8px; font-size: 0.78rem; cursor: pointer; background: white; transition: all 0.2s; display: flex; align-items: center; gap: 0.3rem; }
+        .action-btn:hover { background: #f8fafc; border-color: var(--primary-light); color: var(--primary-light); }
+
+        .highlight-box { background: linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%); border: 1px solid #bfdbfe; border-radius: 12px; padding: 1rem 1.2rem; margin-bottom: 1.5rem; }
+        .hl-label { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--primary-light); margin-bottom: 0.45rem; }
+        .hl-content { font-size: 0.9rem; line-height: 1.65; color: var(--text); font-weight: 500; }
+
+        .r-section { margin-bottom: 1.6rem; }
+        .r-title { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--primary-light); margin-bottom: 0.65rem; display: flex; align-items: center; gap: 0.45rem; padding-bottom: 0.45rem; border-bottom: 2px solid #eff6ff; }
+        .r-content { font-size: 0.875rem; line-height: 1.7; color: var(--text); }
+        .r-content ul { padding-left: 1.5rem; margin-top: 0.4rem; }
+        .r-content li { margin-bottom: 0.3rem; }
+
+        .ev-badge { display: inline-flex; align-items: center; padding: 0.22rem 0.55rem; border-radius: 20px; font-size: 0.73rem; font-weight: 600; }
+        .ev-ia { background: #dcfce7; color: #16a34a; }
+        .ev-ib { background: #d1fae5; color: #059669; }
+        .ev-iia { background: #dbeafe; color: #2563eb; }
+        .ev-iib { background: #eff6ff; color: #3b82f6; }
+        .ev-iii { background: #fef3c7; color: #d97706; }
+        .ev-iv  { background: #fee2e2; color: #dc2626; }
+
+        .ref-list { list-style: none; }
+        .ref-item { display: flex; gap: 0.65rem; padding: 0.65rem 0.75rem; border-radius: 8px; background: #f8fafc; margin-bottom: 0.4rem; font-size: 0.8rem; line-height: 1.5; }
+        .ref-num { font-weight: 700; color: var(--primary-light); min-width: 18px; }
+        .ref-text a { color: var(--primary-light); text-decoration: none; }
+        .ref-text a:hover { text-decoration: underline; }
+
+        .art-card { border: 1px solid var(--border); border-radius: 10px; padding: 0.8rem 0.95rem; margin-bottom: 0.65rem; transition: all 0.2s; }
+        .art-card:hover { border-color: var(--primary-light); box-shadow: var(--shadow); }
+        .art-title { font-size: 0.85rem; font-weight: 600; color: var(--primary); margin-bottom: 0.3rem; }
+        .art-title a { color: inherit; text-decoration: none; }
+        .art-title a:hover { text-decoration: underline; }
+        .art-meta { font-size: 0.76rem; color: var(--text-light); display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; }
+        .art-journal { font-style: italic; }
+        .pub-tag { background: #f1f5f9; padding: 0.08rem 0.4rem; border-radius: 4px; }
+        .pmid-lnk { color: var(--primary-light); text-decoration: none; font-size: 0.73rem; }
+        .pmid-lnk:hover { text-decoration: underline; }
+
+        .disclaimer { background: #fffbeb; border: 1px solid #fde68a; border-radius: 10px; padding: 0.8rem 1rem; font-size: 0.78rem; color: #92400e; display: flex; gap: 0.5rem; align-items: flex-start; margin-top: 1.25rem; }
+        .error-box { background: #fef2f2; border: 1px solid #fecaca; border-radius: 10px; padding: 0.9rem 1.1rem; color: #991b1b; font-size: 0.875rem; display: flex; gap: 0.5rem; align-items: flex-start; }
+
+        footer { text-align: center; padding: 1.75rem; font-size: 0.78rem; color: var(--text-light); border-top: 1px solid var(--border); margin-top: 2.5rem; }
+
+        @media print {
+            .header, .card:first-child, footer, .search-btn, .result-actions, .tabs, #tab-pubmed, #tab-raw { display: none !important; }
+            .tab-content { display: block !important; }
+            .card { box-shadow: none; border: none; }
+            body { background: white; }
+        }
+    </style>
+</head>
+<body>
+
+<header class="header">
+    <div class="header-inner">
+        <div class="logo">
+            <div class="logo-icon">⚕️</div>
+            <div class="logo-text">
+                <h1>MedLit AI</h1>
+                <p id="hdr-sub">Evidenzbasierte medizinische Literatursuche</p>
+            </div>
+        </div>
+        <div class="header-right">
+            <button class="lang-btn" id="lang-btn" onclick="toggleUILang()">🇬🇧 English</button>
+        </div>
+    </div>
+</header>
+
+<main class="container">
+    <div class="grid">
+
+        <!-- Sidebar -->
+        <div>
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-icon"><i class="fas fa-database"></i></div>
+                    <h2 id="lbl-sources">Quellen</h2>
+                </div>
+                <div class="card-body" style="padding:1rem;">
+                    <div id="sources-list"></div>
+                    <div class="src-actions">
+                        <button class="src-action-btn" id="btn-all" onclick="selectAll(true)">✓ Alle an</button>
+                        <button class="src-action-btn" id="btn-none" onclick="selectAll(false)">✗ Alle aus</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-icon"><i class="fas fa-sliders-h"></i></div>
+                    <h2 id="lbl-settings">Einstellungen</h2>
+                </div>
+                <div class="card-body">
+                    <div class="opt-group">
+                        <label class="opt-label" id="lbl-maxres">PubMed Ergebnisse</label>
+                        <select class="opt-select" id="max-results">
+                            <option value="5">5 Artikel</option>
+                            <option value="10" selected>10 Artikel</option>
+                            <option value="20">20 Artikel</option>
+                        </select>
+                    </div>
+                    <div class="opt-group">
+                        <label class="opt-label" id="lbl-outlang">Ausgabesprache</label>
+                        <select class="opt-select" id="out-lang" onchange="onLangChange()">
+                            <option value="de" selected>Deutsch</option>
+                            <option value="en">English</option>
+                        </select>
+                    </div>
+                    <div class="opt-group" style="margin-bottom:0;">
+                        <label class="opt-label" id="lbl-model">AI-Modell</label>
+                        <select class="opt-select" id="ai-model">
+                            <option value="gpt-4o" selected>GPT-4o (empfohlen)</option>
+                            <option value="gpt-4o-mini">GPT-4o Mini (schnell)</option>
+                            <option value="gpt-4-turbo">GPT-4 Turbo</option>
+                            <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main -->
+        <div>
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-icon"><i class="fas fa-search"></i></div>
+                    <h2 id="lbl-search">Medizinische Suche</h2>
+                </div>
+                <div class="card-body">
+                    <label class="search-label" id="lbl-q">
+                        <i class="fas fa-question-circle" style="color:var(--primary-light);"></i>
+                        Medizinische Frage
+                    </label>
+                    <textarea class="search-ta" id="query" placeholder="z.B. Welche Evidenz gibt es für Metformin bei Typ-2-Diabetes?" onkeydown="if(event.ctrlKey&&event.key==='Enter')doSearch()"></textarea>
+                    <p class="ex-label" id="lbl-ex">Beispielfragen:</p>
+                    <div class="ex-wrap" id="examples"></div>
+                    <button class="search-btn" id="search-btn" onclick="doSearch()">
+                        <i class="fas fa-search"></i>
+                        <span id="lbl-searchbtn">Literatur durchsuchen</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-icon"><i class="fas fa-file-medical-alt"></i></div>
+                    <h2 id="lbl-results">Ergebnisse</h2>
+                </div>
+                <div class="card-body" id="results-body">
+                    <div class="placeholder">
+                        <div class="placeholder-icon">🔬</div>
+                        <h3 id="lbl-ph1" style="font-size:1.05rem;margin-bottom:0.4rem;">Bereit zur Suche</h3>
+                        <p id="lbl-ph2" style="font-size:0.875rem;">Quellen auswählen, Frage eingeben und Suche starten.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<footer>
+    <p><strong>MedLit AI</strong> — Werkzeug für evidenzbasierte Medizin &nbsp;|&nbsp; <strong>Kein Ersatz für ärztliche Beurteilung</strong></p>
+    <p style="margin-top:0.25rem;font-size:0.72rem;">PubMed E-utilities API + OpenAI API &nbsp;·&nbsp; API-Key serverseitig gespeichert</p>
+</footer>
+
+<script>
+/* ======================================================
+   KONFIGURATION (wird vom WordPress-Plugin bereitgestellt)
+   window.MEDLIT_CONFIG = { ajaxUrl: '...', nonce: '...' }
+====================================================== */
+const AJAX_URL = (window.MEDLIT_CONFIG && window.MEDLIT_CONFIG.ajaxUrl) || '/wp-admin/admin-ajax.php';
+const WP_NONCE = (window.MEDLIT_CONFIG && window.MEDLIT_CONFIG.nonce) || '';
+
+/* ======================================================
+   DATA
+====================================================== */
+const SOURCES = [
+    { id:'pubmed',   name:'PubMed / MEDLINE', desc:'NIH Literaturdatenbank',       abbr:'PM',   color:'#1e40af', bg:'#dbeafe', on:true  },
+    { id:'cochrane', name:'Cochrane Library',  desc:'Systematische Reviews',        abbr:'CO',   color:'#047857', bg:'#d1fae5', on:true  },
+    { id:'who',      name:'WHO',               desc:'Weltgesundheitsorganisation',  abbr:'WHO',  color:'#065f46', bg:'#ccfbf1', on:true  },
+    { id:'awmf',     name:'AWMF Leitlinien',   desc:'Deutsche med. Leitlinien',     abbr:'AWMF', color:'#7c3aed', bg:'#ede9fe', on:true  },
+    { id:'nejm',     name:'NEJM',              desc:'New England J. of Medicine',   abbr:'NEJM', color:'#b91c1c', bg:'#fee2e2', on:false },
+    { id:'bmj',      name:'BMJ',               desc:'British Medical Journal',      abbr:'BMJ',  color:'#0369a1', bg:'#e0f2fe', on:false },
+    { id:'lancet',   name:'The Lancet',        desc:'Renommiertes med. Journal',    abbr:'LCT',  color:'#c2410c', bg:'#fff7ed', on:false },
+    { id:'uptodate', name:'UpToDate',          desc:'Klinische Entscheidungshilfe', abbr:'UTD',  color:'#0891b2', bg:'#cffafe', on:false },
+];
+
+const EX = {
+    de: [
+        'Welche Evidenz gibt es für Metformin bei Typ-2-Diabetes?',
+        'Vorhofflimmern: Antikoagulation – welche Indikation?',
+        'Statin-Therapie zur primären KHK-Prävention',
+        'Behandlung der ambulant erworbenen Pneumonie',
+        'Aspirin in der Primärprävention kardiovaskulärer Ereignisse',
+        'Vitamin-D-Supplementierung bei Osteoporose',
+    ],
+    en: [
+        'What is the evidence for metformin in type 2 diabetes?',
+        'Atrial fibrillation: when to anticoagulate?',
+        'Statin therapy for primary prevention of coronary artery disease',
+        'Treatment of community-acquired pneumonia',
+        'Aspirin for primary prevention of cardiovascular events',
+        'Vitamin D supplementation in osteoporosis',
+    ],
+};
+
+const T = {
+    de: {
+        hdrSub:'Evidenzbasierte medizinische Literatursuche', sources:'Quellen', settings:'Einstellungen',
+        maxres:'PubMed Ergebnisse', outlang:'Ausgabesprache', model:'AI-Modell',
+        search:'Medizinische Suche', q:'Medizinische Frage', ex:'Beispielfragen:',
+        searchbtn:'Literatur durchsuchen', results:'Ergebnisse', ph1:'Bereit zur Suche',
+        ph2:'Quellen auswählen, Frage eingeben und Suche starten.', allOn:'✓ Alle an', allOff:'✗ Alle aus',
+        langbtn:'🇬🇧 English', copy:'Kopieren', print:'Drucken', found:'Artikel gefunden',
+        nopm:'Keine PubMed-Ergebnisse', query:'Suche nach:', summaryTab:'Zusammenfassung', rawTab:'Volltext',
+        loading:'Suche läuft…', steps:['PubMed wird durchsucht…','Abstracts werden geladen…','KI analysiert Literatur…','Zusammenfassung wird erstellt…'],
+        disclaimer:'<strong>Hinweis:</strong> Diese Zusammenfassung dient ausschließlich zu Informationszwecken und ersetzt nicht die ärztliche Beurteilung. Überprüfen Sie alle klinischen Entscheidungen anhand aktueller Leitlinien.',
+        errNoQ:'Bitte eine Frage eingeben.',
+        copied:'In Zwischenablage kopiert!',
+        secIntro:'Einleitung', secMain:'Hauptbefunde', secGuide:'Leitlinienempfehlungen', secEv:'Evidenzqualität',
+        secConc:'Klinische Schlussfolgerung', secRef:'Schlüsselreferenzen',
+    },
+    en: {
+        hdrSub:'Evidence-based Medical Literature Search', sources:'Sources', settings:'Settings',
+        maxres:'PubMed Results', outlang:'Output Language', model:'AI Model',
+        search:'Medical Search', q:'Medical Question', ex:'Example questions:',
+        searchbtn:'Search Literature', results:'Results', ph1:'Ready to Search',
+        ph2:'Select sources, enter a question, and start the search.', allOn:'✓ Enable All', allOff:'✗ Disable All',
+        langbtn:'🇩🇪 Deutsch', copy:'Copy', print:'Print', found:'articles found',
+        nopm:'No PubMed results', query:'Query:', summaryTab:'Summary', rawTab:'Full Text',
+        loading:'Search in progress…', steps:['Searching PubMed…','Loading abstracts…','AI analyzing literature…','Creating summary…'],
+        disclaimer:'<strong>Notice:</strong> This summary is for informational purposes only and does not replace medical judgment. Verify all clinical decisions against current guidelines.',
+        errNoQ:'Please enter a question.',
+        copied:'Copied to clipboard!',
+        secIntro:'Introduction', secMain:'Main Findings', secGuide:'Guideline Recommendations', secEv:'Evidence Quality',
+        secConc:'Clinical Conclusion', secRef:'Key References',
+    },
+};
+
+/* ======================================================
+   STATE
+====================================================== */
+let lang = 'de';
+let sources = SOURCES.map(s => ({...s}));
+let lastAiText = '';
+
+/* ======================================================
+   INIT
+====================================================== */
+function init() {
+    const savedLang = localStorage.getItem('medlit_lang');
+    if (savedLang) { lang = savedLang; document.getElementById('out-lang').value = savedLang; }
+    renderSources();
+    renderExamples();
+    applyT();
+}
+
+function applyT() {
+    const t = T[lang];
+    document.getElementById('hdr-sub').textContent = t.hdrSub;
+    document.getElementById('lbl-sources').textContent = t.sources;
+    document.getElementById('lbl-settings').textContent = t.settings;
+    document.getElementById('lbl-maxres').textContent = t.maxres;
+    document.getElementById('lbl-outlang').textContent = t.outlang;
+    document.getElementById('lbl-model').textContent = t.model;
+    document.getElementById('lbl-search').textContent = t.search;
+    document.getElementById('lbl-q').innerHTML = `<i class="fas fa-question-circle" style="color:var(--primary-light);"></i> ${t.q}`;
+    document.getElementById('lbl-ex').textContent = t.ex;
+    document.getElementById('lbl-searchbtn').textContent = t.searchbtn;
+    document.getElementById('lbl-results').textContent = t.results;
+    document.getElementById('btn-all').textContent = t.allOn;
+    document.getElementById('btn-none').textContent = t.allOff;
+    document.getElementById('lang-btn').textContent = t.langbtn;
+    document.getElementById('query').placeholder = EX[lang][0];
+}
+
+function toggleUILang() {
+    lang = lang === 'de' ? 'en' : 'de';
+    document.getElementById('out-lang').value = lang;
+    localStorage.setItem('medlit_lang', lang);
+    applyT();
+    renderExamples();
+}
+
+function onLangChange() {
+    lang = document.getElementById('out-lang').value;
+    localStorage.setItem('medlit_lang', lang);
+    applyT();
+    renderExamples();
+}
+
+/* ── Sources ── */
+function renderSources() {
+    document.getElementById('sources-list').innerHTML = sources.map(s => `
+        <div class="source-item">
+            <div class="source-info">
+                <div class="src-badge" style="background:${s.bg};color:${s.color}">${s.abbr}</div>
+                <div>
+                    <div class="src-name">${s.name}</div>
+                    <div class="src-desc">${s.desc}</div>
+                </div>
+            </div>
+            <label class="toggle">
+                <input type="checkbox" ${s.on ? 'checked' : ''} onchange="toggleSrc('${s.id}',this.checked)">
+                <span class="t-slider"></span>
+            </label>
+        </div>
+    `).join('');
+}
+
+function toggleSrc(id, val) {
+    const s = sources.find(x => x.id === id);
+    if (s) s.on = val;
+}
+
+function selectAll(val) {
+    sources.forEach(s => s.on = val);
+    renderSources();
+}
+
+function renderExamples() {
+    document.getElementById('examples').innerHTML = EX[lang].map(q => {
+        const short = q.length > 48 ? q.slice(0, 46) + '…' : q;
+        return `<button class="ex-btn" onclick="useEx(this)" data-q="${q.replace(/"/g,'&quot;')}">${short}</button>`;
+    }).join('');
+}
+
+function useEx(el) {
+    document.getElementById('query').value = el.getAttribute('data-q');
+}
+
+/* ======================================================
+   PUBMED API (direkt — kein API-Key nötig)
+====================================================== */
+async function fetchPubMed(query, max) {
+    const base = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/';
+    const tool = 'MedLitAI&email=medlit-ai%40example.com';
+
+    const sr = await fetch(`${base}esearch.fcgi?db=pubmed&term=${encodeURIComponent(query)}&retmax=${max}&retmode=json&sort=relevance&tool=${tool}`);
+    const sd = await sr.json();
+    const ids = sd.esearchresult?.idlist || [];
+    if (!ids.length) return { articles:[], abstractText:'' };
+
+    const [sumR, abR] = await Promise.all([
+        fetch(`${base}esummary.fcgi?db=pubmed&id=${ids.join(',')}&retmode=json&tool=${tool}`),
+        fetch(`${base}efetch.fcgi?db=pubmed&id=${ids.join(',')}&rettype=abstract&retmode=text&tool=${tool}`),
+    ]);
+    const sumD = await sumR.json();
+    const abstractText = await abR.text();
+
+    const articles = ids.map(id => {
+        const s = sumD.result?.[id];
+        if (!s) return null;
+        return {
+            pmid: id,
+            title: s.title || '',
+            authors: (s.authors || []).slice(0,3).map(a => a.name).join(', '),
+            journal: s.fulljournalname || s.source || '',
+            year: s.pubdate ? s.pubdate.slice(0,4) : '',
+            doi: (s.articleids || []).find(a => a.idtype === 'doi')?.value || '',
+            pubtype: (s.pubtype || []).slice(0,2).join(', '),
+        };
+    }).filter(Boolean);
+
+    return { articles, abstractText };
+}
+
+/* ======================================================
+   OPENAI API — über WordPress-Proxy
+====================================================== */
+async function callAI(query, pmData, activeSources) {
+    const model = document.getElementById('ai-model').value;
+    const outLang = document.getElementById('out-lang').value;
+    const srcNames = activeSources.map(s => s.name).join(', ');
+    const langInstr = outLang === 'de' ? 'Antworte vollständig auf Deutsch.' : 'Reply entirely in English.';
+
+    const abstractCtx = pmData.abstractText
+        ? `\n\nPubMed Abstracts (top ${pmData.articles.length} results):\n${pmData.abstractText.slice(0, 4500)}`
+        : '';
+    const articleList = pmData.articles.length
+        ? '\n\nPubMed Article List:\n' + pmData.articles.map((a, i) =>
+            `${i+1}. ${a.title} — ${a.authors}; ${a.journal} ${a.year}; PMID ${a.pmid}${a.doi ? ' DOI:' + a.doi : ''}`
+          ).join('\n')
+        : '';
+
+    const sectionHeaders = outLang === 'de'
+        ? `## EINLEITUNG\n## HAUPTBEFUNDE\n## LEITLINIENEMPFEHLUNGEN\n## EVIDENZQUALITÄT\n## KLINISCHE SCHLUSSFOLGERUNG\n## QUELLEN`
+        : `## INTRODUCTION\n## MAIN FINDINGS\n## GUIDELINE RECOMMENDATIONS\n## EVIDENCE QUALITY\n## CLINICAL CONCLUSION\n## REFERENCES`;
+
+    const prompt = `Du bist ein Experte für evidenzbasierte Medizin. ${langInstr}
+
+Beantworte die folgende klinische Frage basierend auf verfügbarer Literatur aus diesen Quellen: ${srcNames}.
+
+Frage: ${query}
+${abstractCtx}${articleList}
+
+Erstelle eine strukturierte, wissenschaftlich präzise Zusammenfassung mit GENAU diesen Abschnitten:
+
+${sectionHeaders}
+
+Anforderungen:
+- EINLEITUNG/INTRODUCTION: 2-3 Sätze zur klinischen Relevanz der Frage.
+- HAUPTBEFUNDE/MAIN FINDINGS: Wichtigste Studienergebnisse mit Studientypen (RCT, Meta-Analyse, Kohortenstudie). Benenne konkrete Studien und Effektgrößen wo möglich. Nutze Aufzählungszeichen.
+- LEITLINIENEMPFEHLUNGEN/GUIDELINE RECOMMENDATIONS: Empfehlungen aus AWMF, ESC, AHA, WHO, NICE etc. Falls keine vorhanden, explizit angeben.
+- EVIDENZQUALITÄT/EVIDENCE QUALITY: Nutze exakt dieses Format:
+  - Evidenzgrad: [Ia / Ib / IIa / IIb / III / IV]
+  - Studientypen: [Liste]
+  - Einschränkungen: [Text]
+  - Empfehlungsklasse: [A / B / C / D]
+- KLINISCHE SCHLUSSFOLGERUNG/CLINICAL CONCLUSION: 2-3 Sätze praktische Handlungsempfehlung.
+- QUELLEN/REFERENCES: 4-8 Schlüsselreferenzen mit Autoren, Zeitschrift, Jahr, PMID/DOI wo bekannt. Erfinde keine Daten.`;
+
+    // Anfrage über WordPress-Proxy senden (?action als URL-Parameter, damit admin-ajax.php den Hook findet)
+    const resp = await fetch(AJAX_URL + '?action=medlit_claude', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            nonce: WP_NONCE,
+            model: model,
+            max_tokens: 2200,
+            messages: [{ role: 'user', content: prompt }],
+        }),
+    });
+
+    if (!resp.ok) {
+        const err = await resp.json().catch(() => ({}));
+        throw new Error(err?.data?.message || `HTTP-Fehler ${resp.status}`);
+    }
+
+    const data = await resp.json();
+    if (!data.success) {
+        throw new Error(data?.data?.message || 'Unbekannter Fehler');
+    }
+
+    return data.data?.choices?.[0]?.message?.content || '';
+}
+
+/* ======================================================
+   PARSE / FORMAT
+====================================================== */
+function parseSections(text) {
+    const out = {};
+    let cur = null, buf = [];
+    for (const line of text.split('\n')) {
+        const m = line.match(/^##\s+(.+)$/);
+        if (m) {
+            if (cur) out[cur] = buf.join('\n').trim();
+            cur = m[1].trim().toUpperCase();
+            buf = [];
+        } else if (cur) buf.push(line);
+    }
+    if (cur) out[cur] = buf.join('\n').trim();
+    return out;
+}
+
+function getSection(sec, ...keys) {
+    for (const k of keys) if (sec[k]) return sec[k];
+    return '';
+}
+
+function fmt(text) {
+    if (!text) return `<em style="color:var(--text-light)">—</em>`;
+    return text
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.+?)\*/g, '<em>$1</em>')
+        .replace(/^[-•]\s+(.+)$/gm, '<li>$1</li>')
+        .replace(/(<li>[\s\S]*?<\/li>)/g, m => `<ul>${m}</ul>`)
+        .replace(/\n{2,}/g, '</p><p>')
+        .replace(/\n/g, '<br>');
+}
+
+function evBadge(text) {
+    const m = text.match(/Evidenzgrad[:\s]+(Ia|Ib|IIa|IIb|III|IV)/i);
+    if (!m) return '';
+    const lv = m[1].toLowerCase();
+    const cls = { ia:'ev-ia', ib:'ev-ib', iia:'ev-iia', iib:'ev-iib', iii:'ev-iii', iv:'ev-iv' }[lv] || '';
+    return `<span class="ev-badge ${cls}">Evidenz ${m[1]}</span>`;
+}
+
+function parseRefs(text) {
+    return text.split('\n')
+        .map(l => l.replace(/^\d+[\.\)]\s*/, '').replace(/^[-•]\s*/, '').trim())
+        .filter(l => l.length > 10);
+}
+
+/* ======================================================
+   RENDER RESULTS
+====================================================== */
+function renderResults(query, aiText, pmData, activeSrcs) {
+    lastAiText = aiText;
+    const t = T[lang];
+    const sec = parseSections(aiText);
+
+    const intro  = getSection(sec, 'EINLEITUNG', 'INTRODUCTION');
+    const main   = getSection(sec, 'HAUPTBEFUNDE', 'MAIN FINDINGS');
+    const guide  = getSection(sec, 'LEITLINIENEMPFEHLUNGEN', 'GUIDELINE RECOMMENDATIONS');
+    const ev     = getSection(sec, 'EVIDENZQUALITÄT', 'EVIDENCE QUALITY');
+    const conc   = getSection(sec, 'KLINISCHE SCHLUSSFOLGERUNG', 'CLINICAL CONCLUSION', 'CONCLUSION');
+    const refs   = parseRefs(getSection(sec, 'QUELLEN', 'REFERENCES', 'SOURCES'));
+
+    const chips = activeSrcs.map(s =>
+        `<span class="src-chip" style="background:${s.bg};color:${s.color}">${s.abbr}</span>`
+    ).join('');
+
+    const badge = ev ? evBadge(ev) : '';
+
+    const artCards = pmData.articles.slice(0,10).map(a => `
+        <div class="art-card">
+            <div class="art-title"><a href="https://pubmed.ncbi.nlm.nih.gov/${encodeURIComponent(a.pmid)}/" target="_blank" rel="noopener">${a.title}</a></div>
+            <div class="art-meta">
+                ${a.authors ? `<span>${a.authors}</span>` : ''}
+                ${a.journal ? `<span class="art-journal">${a.journal}</span>` : ''}
+                ${a.year ? `<span>${a.year}</span>` : ''}
+                ${a.pubtype ? `<span class="pub-tag">${a.pubtype}</span>` : ''}
+                <a href="https://pubmed.ncbi.nlm.nih.gov/${encodeURIComponent(a.pmid)}/" target="_blank" rel="noopener" class="pmid-lnk">PMID ${a.pmid}</a>
+                ${a.doi ? `<a href="https://doi.org/${encodeURIComponent(a.doi)}" target="_blank" rel="noopener" class="pmid-lnk">DOI</a>` : ''}
+            </div>
+        </div>
+    `).join('');
+
+    const section = (icon, title, content) => content ? `
+        <div class="r-section">
+            <div class="r-title"><i class="fas fa-${icon}"></i> ${title}</div>
+            <div class="r-content">${fmt(content)}</div>
+        </div>` : '';
+
+    const refHtml = refs.length ? `
+        <div class="r-section">
+            <div class="r-title"><i class="fas fa-book-open"></i> ${t.secRef}</div>
+            <ul class="ref-list">
+                ${refs.map((r, i) => {
+                    const safeR = r.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+                    const linked = safeR.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
+                    return `<li class="ref-item"><span class="ref-num">${i+1}</span><span class="ref-text">${linked}</span></li>`;
+                }).join('')}
+            </ul>
+        </div>` : '';
+
+    document.getElementById('results-body').innerHTML = `
+        <div class="result-meta">
+            <div>
+                <div class="result-query">${t.query} <strong>${query.replace(/</g,'&lt;')}</strong></div>
+                <div class="src-chips">${chips}</div>
+            </div>
+            <div class="result-actions">
+                ${badge}
+                <button class="action-btn" onclick="copyResult()"><i class="fas fa-copy"></i> ${t.copy}</button>
+                <button class="action-btn" onclick="window.print()"><i class="fas fa-print"></i> ${t.print}</button>
+            </div>
+        </div>
+
+        <div class="tabs">
+            <div class="tab active" id="t-sum" onclick="switchTab('sum')">${t.summaryTab}</div>
+            <div class="tab" id="t-pm" onclick="switchTab('pm')">PubMed <span class="count-badge">${pmData.articles.length}</span></div>
+            <div class="tab" id="t-raw" onclick="switchTab('raw')">${t.rawTab}</div>
+        </div>
+
+        <div class="tab-content active" id="tc-sum">
+            ${conc ? `<div class="highlight-box"><div class="hl-label"><i class="fas fa-star"></i> ${t.secConc}</div><div class="hl-content">${fmt(conc)}</div></div>` : ''}
+            ${section('info-circle', t.secIntro, intro)}
+            ${section('microscope', t.secMain, main)}
+            ${section('clipboard-list', t.secGuide, guide)}
+            ${section('chart-bar', t.secEv, ev)}
+            ${refHtml}
+            <div class="disclaimer"><i class="fas fa-exclamation-triangle" style="flex-shrink:0;margin-top:0.1rem;"></i><span>${t.disclaimer}</span></div>
+        </div>
+
+        <div class="tab-content" id="tc-pm">
+            ${pmData.articles.length
+                ? `<p style="font-size:0.84rem;color:var(--text-light);margin-bottom:1rem;">${pmData.articles.length} ${t.found}</p>${artCards}`
+                : `<p style="text-align:center;color:var(--text-light);padding:2rem;">${t.nopm}</p>`}
+        </div>
+
+        <div class="tab-content" id="tc-raw">
+            <pre style="font-size:0.8rem;line-height:1.65;white-space:pre-wrap;color:var(--text);">${aiText.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</pre>
+        </div>
+    `;
+}
+
+function switchTab(tab) {
+    ['sum','pm','raw'].forEach(t => {
+        document.getElementById(`t-${t}`)?.classList.remove('active');
+        document.getElementById(`tc-${t}`)?.classList.remove('active');
+    });
+    document.getElementById(`t-${tab}`)?.classList.add('active');
+    document.getElementById(`tc-${tab}`)?.classList.add('active');
+}
+
+function copyResult() {
+    if (!lastAiText) return;
+    navigator.clipboard.writeText(lastAiText).then(() => alert(T[lang].copied));
+}
+
+/* ======================================================
+   MAIN SEARCH
+====================================================== */
+async function doSearch() {
+    const q = document.getElementById('query').value.trim();
+    const t = T[lang];
+    if (!q) { alert(t.errNoQ); return; }
+
+    const activeSrcs = sources.filter(s => s.on);
+    const max = parseInt(document.getElementById('max-results').value, 10);
+    const btn = document.getElementById('search-btn');
+    btn.disabled = true;
+
+    document.getElementById('results-body').innerHTML = `
+        <div class="loading">
+            <div class="spinner"></div>
+            <div>
+                <div style="font-size:0.9rem;color:var(--text-light);text-align:center;">${t.loading}</div>
+                <div class="loading-step" id="ld-step">${t.steps[0]}</div>
+            </div>
+        </div>`;
+
+    const showStep = i => {
+        const el = document.getElementById('ld-step');
+        if (el) el.textContent = t.steps[i] || '';
+    };
+
+    try {
+        let pmData = { articles:[], abstractText:'' };
+        if (activeSrcs.find(s => s.id === 'pubmed')) {
+            showStep(0);
+            pmData = await fetchPubMed(q, max);
+            showStep(1);
+        }
+
+        showStep(2);
+        const aiText = await callAI(q, pmData, activeSrcs);
+        showStep(3);
+
+        renderResults(q, aiText, pmData, activeSrcs);
+    } catch(err) {
+        console.error(err);
+        document.getElementById('results-body').innerHTML = `
+            <div class="error-box">
+                <i class="fas fa-exclamation-circle" style="flex-shrink:0;margin-top:0.1rem;"></i>
+                <div><strong>Fehler / Error:</strong> ${err.message.replace(/</g,'&lt;')}</div>
+            </div>`;
+    } finally {
+        btn.disabled = false;
+    }
+}
+
+init();
+</script>
+</body>
+</html>

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<!-- MedLit Plain: identisch zu MedLit AI, aber ohne Login- oder API-Key-Prüfung -->
+<html lang="de">
+<head>
+	<meta charset="UTF-8">
+	<title>MedLit Plain</title>
+	<script src="OPENAI_KEY.js"></script>
+</head>
+<body>
+	<h2>MedLit Plain (OpenAI Demo)</h2>
+	<form id="medlit-form">
+		<label for="frage">Frage an OpenAI/Medizin:</label><br>
+		<input type="text" id="frage" name="frage" style="width:60%" value="Was ist die Standardtherapie der Anorexia nervosa?">
+		<button type="submit">Absenden</button>
+	</form>
+	<pre id="antwort" style="margin-top:2em;background:#f8f8f8;padding:1em;"></pre>
+	<script>
+	document.getElementById('medlit-form').addEventListener('submit', async function(e) {
+		e.preventDefault();
+		const frage = document.getElementById('frage').value;
+		document.getElementById('antwort').textContent = 'Bitte warten...';
+		try {
+			const response = await fetch('https://api.openai.com/v1/chat/completions', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					'Authorization': 'Bearer ' + OPENAI_API_KEY
+				},
+				body: JSON.stringify({
+					model: 'gpt-3.5-turbo',
+					messages: [
+						{role: 'system', content: 'Du bist ein medizinischer Assistent. Antworte evidenzbasiert und kurz.'},
+						{role: 'user', content: frage}
+					]
+				})
+			});
+			if (!response.ok) throw new Error('Fehler: ' + response.status);
+			const data = await response.json();
+			const antwort = data.choices?.[0]?.message?.content || 'Keine Antwort erhalten.';
+			document.getElementById('antwort').textContent = antwort;
+		} catch (err) {
+			document.getElementById('antwort').textContent = 'Fehler: ' + err.message;
+		}
+	});
+	</script>
+</body>
+</html>
