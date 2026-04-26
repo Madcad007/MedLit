@@ -1,2 +1,8 @@
 # Ignore OpenAI API key file
 OPENAI_KEY.js
+# Ignore Claude API key file
+CLAUDE_KEY.js
+
+# Ignore WordPress config files
+../../../wp-config.php
+../../../wp-config_bk2.php

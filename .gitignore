@@ -1,0 +1,13 @@
+# WordPress-Konfiguration (enthält Passwörter und API-Keys)
+wp-config.php
+wp-config_bk2.php
+
+# API-Key Dateien
+plain/app/OPENAI_KEY.js
+plain/app/CLAUDE_KEY.js
+
+# ZIP-Archive
+*.zip
+
+# macOS
+.DS_Store
